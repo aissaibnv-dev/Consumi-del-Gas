@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="it"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Gas</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Gas">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="gas-icon.png">
+<style>
+:root{color-scheme:light dark;--bg:#fafaf8;--tx:#111;--mu:#8a8a85;--bd:#e8e8e4;--rd:#b3261e}
+@media(prefers-color-scheme:dark){:root{--bg:#0e0e0e;--tx:#ededea;--mu:#7d7d78;--bd:#242422;--rd:#e5776f}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:400 16px/1.4 -apple-system,system-ui,Helvetica,Arial,sans-serif}
+body{padding:calc(env(safe-area-inset-top,0px) + 20px) 24px calc(env(safe-area-inset-bottom,0px) + 90px)}
+.card{padding:0 0 28px;margin:0 0 28px;border-bottom:1px solid var(--bd)}
+.card:last-child{border:0}
+h2{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.14em;color:var(--mu);margin:0 0 16px}
+.big{font-size:46px;font-weight:200;letter-spacing:-.03em;line-height:1.1;margin:4px 0}
+.mu{color:var(--mu);font-size:13px}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:20px 16px}
+.g b{display:block;font-size:26px;font-weight:300;letter-spacing:-.02em;line-height:1.2}
+.g span{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mu)}
+.nav{display:flex;align-items:center;justify-content:space-between;margin:0 0 28px}
+.nav b{font-size:13px;font-weight:500;letter-spacing:.14em;text-transform:uppercase}
+button,select,input{font:inherit;color:var(--tx)}
+.btn{background:var(--tx);color:var(--bg);border:0;border-radius:8px;padding:14px;width:100%;font-size:14px;font-weight:500;letter-spacing:.04em;margin-top:20px}
+.btn.s{background:none;color:var(--tx);border:1px solid var(--bd)}
+.btn.d{background:none;color:var(--rd);border:1px solid var(--bd)}
+.ib{background:none;border:0;font-size:24px;font-weight:200;color:var(--mu);padding:4px 10px;margin:0 -10px}
+label{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mu);margin:22px 0 2px}
+input{width:100%;padding:10px 0;border:0;border-bottom:1px solid var(--bd);border-radius:0;background:none;font-size:17px;-webkit-appearance:none;appearance:none;outline:0}
+input:focus{border-bottom-color:var(--tx)}
+.row{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--bd);align-items:center}
+.row:last-child{border:0}
+.x{background:none;border:0;color:var(--mu);font-size:15px;padding:4px 0 4px 14px}
+.tabs{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--bg);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabs button{flex:1;background:none;border:0;padding:16px 0;color:var(--mu);font-size:12px;font-weight:500;letter-spacing:.14em;text-transform:uppercase}
+.tabs button.on{color:var(--tx)}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 74px);background:var(--tx);color:var(--bg);padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%}
+#toast.on{opacity:1}
+svg{width:100%;height:auto;display:block}
+svg text{fill:var(--mu);font-size:9px;font-family:inherit}
+.b0{fill:var(--mu);opacity:.4}.b1{fill:var(--tx)}
+.hid{display:none}
+</style></head><body>
+<div id="v-let"></div><div id="v-mese" class="hid"></div><div id="v-dati" class="hid"></div>
+<div id="toast"></div>
+<div class="tabs"><button data-t="let" class="on">Letture</button><button data-t="mese">Mese</button><button data-t="dati">Dati</button></div>
+<script>
+var MESI=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+var KEY='gas_v1',db={r:[],p:{a:1.314615,b:0.17,c:0.030987,i:22}};
+try{var raw=localStorage.getItem(KEY);if(raw){var x0=JSON.parse(raw);if(x0&&x0.r&&x0.p)db=x0}}catch(e){}
+var $=function(s){return document.querySelector(s)};
+function save(){try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){toast('Salvataggio non riuscito: fai un backup')}}
+function toast(t){var e=$('#toast');e.textContent=t;e.className='on';clearTimeout(toast.t);toast.t=setTimeout(function(){e.className=''},2600)}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function nf(n,d){return n.toLocaleString('it-IT',{minimumFractionDigits:d,maximumFractionDigits:d})}
+function m3(n){return nf(n,3)+' m³'}
+function eur(n){return '€ '+nf(n,2)}
+function num(s){return parseFloat(String(s).replace(',','.'))}
+function today(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function dmy(s){return s.slice(8)+'/'+s.slice(5,7)+'/'+s.slice(0,4)}
+function day(s){var a=s.split('-');return Date.UTC(+a[0],+a[1]-1,+a[2])/864e5}
+function unit(){var p=db.p;return Math.round((p.a+p.b+p.c)*(1+p.i/100)*1e4)/1e4}
+var cur=today().slice(0,7);
+function shift(k,n){var y=+k.slice(0,4),m=+k.slice(5)-1+n;y+=Math.floor(m/12);m=((m%12)+12)%12;return y+'-'+String(m+1).padStart(2,'0')}
+function sorted(){return db.r.slice().sort(function(a,b){return a.d.localeCompare(b.d)||a.v-b.v})}
+function rows(){var s=sorted();return s.map(function(r,i){if(!i)return{r:r,first:true};var p=s[i-1],c=Math.round((r.v-p.v)*1000)/1000,g=day(r.d)-day(p.d);return{r:r,c:c,g:g,m:g>0?c/g:null,k:c*(r.p||unit())}})}
+function totals(rs){var c=0,k=0,g=0;rs.forEach(function(x){if(!x.first){c+=x.c;k+=x.k;g+=x.g}});return{c:c,k:k,g:g,m:g>0?c/g:0}}
+
+function renderLet(){
+ var rs=rows(),t=totals(rs),last=rs.length?rs[rs.length-1].r.v:null,h='';
+ h+='<div class="card"><h2>Riepilogo</h2><div class="g"><div><b>'+nf(t.c,3)+'</b><span>m³ consumati</span></div><div><b>'+nf(t.k,2)+'</b><span>€ stimati</span></div><div><b>'+(last==null?'–':nf(last,3))+'</b><span>ultima lettura</span></div><div><b>'+nf(t.m,2)+'</b><span>m³ al giorno</span></div></div></div>';
+ h+='<div class="card"><h2>Nuova lettura</h2><label>Data</label><input id="d" type="date" value="'+today()+'"><label>Lettura contatore (m³)</label><input id="v" inputmode="decimal" placeholder="0,000"><label>Nota (facoltativa)</label><input id="n" placeholder="es. +2 gradi termosifoni"><button class="btn" id="sv">Salva lettura</button><div class="mu" style="margin-top:12px">Prezzo applicato: '+nf(unit(),4)+' €/m³</div></div>';
+ h+='<div class="card"><h2>Letture ('+rs.length+')</h2>';
+ if(!rs.length)h+='<div class="mu">Nessuna lettura. Inserisci la prima: servirà da punto di partenza.</div>';
+ rs.slice().reverse().forEach(function(x){var r=x.r;h+='<div class="row"><div><div>'+dmy(r.d)+' · '+nf(r.v,3)+'</div><div class="mu">'+(x.first?'Lettura iniziale':'+'+m3(x.c)+' in '+x.g+(x.g===1?' giorno':' giorni'))+(r.n?' · '+esc(r.n):'')+'</div></div><div style="white-space:nowrap;text-align:right">'+(x.first?'':eur(x.k))+'<button class="x" data-del="'+r.id+'">✕</button></div></div>'});
+ $('#v-let').innerHTML=h+'</div>';
+}
+function chart(ps){
+ var W=340,H=150,P=14,n=ps.length,mx=Math.max.apply(null,ps.map(function(x){return x.m})),bw=(W-2*P)/n,top=0;
+ ps.forEach(function(x,i){if(x.m>ps[top].m)top=i});
+ var s='<svg viewBox="0 0 '+W+' '+H+'">',step=n>16?Math.ceil(n/10):1;
+ ps.forEach(function(x,i){var hh=Math.max(2,(H-46)*x.m/mx),X=P+i*bw+bw*.15,Y=H-24-hh;
+  s+='<rect class="'+(i===top?'b1':'b0')+'" x="'+X.toFixed(1)+'" y="'+Y.toFixed(1)+'" width="'+(bw*.7).toFixed(1)+'" height="'+hh.toFixed(1)+'" rx="1"/>';
+  if(i%step===0||i===top)s+='<text x="'+(X+bw*.35).toFixed(1)+'" y="'+(H-10)+'" text-anchor="middle">'+x.r.d.slice(8)+'</text>';
+  if(i===top)s+='<text x="'+(X+bw*.35).toFixed(1)+'" y="'+(Y-5).toFixed(1)+'" text-anchor="middle" style="fill:var(--tx)">'+nf(x.m,2)+'</text>'});
+ return s+'</svg>';
+}
+function renderMese(){
+ var ps=rows().filter(function(x){return !x.first&&x.r.d.indexOf(cur)===0}),t=totals(ps),h='';
+ h+='<div class="nav"><button class="ib" data-m="-1">‹</button><b>'+MESI[+cur.slice(5)-1]+' '+cur.slice(0,4)+'</b><button class="ib" data-m="1">›</button></div>';
+ if(!ps.length){$('#v-mese').innerHTML=h+'<div class="mu">Nessun consumo registrato in questo mese.</div>';return}
+ h+='<div class="card"><div class="mu">Consumo del mese</div><div class="big">'+m3(t.c)+'</div><div class="g" style="margin-top:18px"><div><b>'+nf(t.k,2)+'</b><span>€ stimati</span></div><div><b>'+nf(t.m,2)+'</b><span>m³ al giorno</span></div></div></div>';
+ var pl=ps.filter(function(x){return x.m!=null});
+ if(pl.length){h+='<div class="card"><h2>Consumo medio al giorno (m³)</h2>'+chart(pl)+'</div>';
+  h+='<div class="card"><h2>Giorni con più consumi</h2>';
+  pl.slice().sort(function(a,b){return b.m-a.m}).slice(0,3).forEach(function(x){h+='<div class="row"><span>'+dmy(x.r.d).slice(0,5)+(x.g>1?' <span class="mu">(ultimi '+x.g+' giorni)</span>':'')+'</span><span>'+nf(x.m,2)+' m³/giorno</span></div>'});
+  h+='</div>'}
+ $('#v-mese').innerHTML=h;
+}
+function renderDati(){
+ var p=db.p,h='<div class="card"><h2>Costo unitario</h2><div class="big" style="font-size:34px">'+nf(unit(),4)+' €/m³</div><div class="mu">Calcolato dalle voci sotto, IVA inclusa. Il prezzo è variabile: aggiornalo ogni mese. Le letture già salvate mantengono il prezzo di quando le hai inserite. Quota fissa esclusa.</div>';
+ h+='<label>Vendita + rete (€/m³, senza IVA)</label><input id="pa" inputmode="decimal" value="'+String(p.a).replace('.',',')+'"><label>Accisa (€/m³)</label><input id="pb" inputmode="decimal" value="'+String(p.b).replace('.',',')+'"><label>Addizionale regionale (€/m³)</label><input id="pc" inputmode="decimal" value="'+String(p.c).replace('.',',')+'"><label>IVA (%)</label><input id="pi" inputmode="decimal" value="'+String(p.i).replace('.',',')+'"><button class="btn s" id="sp">Salva prezzo</button></div>';
+ h+='<div class="card"><h2>Backup</h2><div class="mu">I dati restano solo su questo telefono. Fai ogni tanto un backup e salvalo nell\'app File.</div><button class="btn s" id="ex">Esporta backup (.json)</button><button class="btn s" id="im">Importa backup</button><input type="file" id="fi" accept=".json,application/json" class="hid"></div>';
+ h+='<div class="card"><button class="btn d" id="rs">Cancella tutte le letture</button></div>';
+ $('#v-dati').innerHTML=h;
+}
+function tab(t){['let','mese','dati'].forEach(function(x){$('#v-'+x).className=x===t?'':'hid'});document.querySelectorAll('.tabs button').forEach(function(b){b.className=b.dataset.t===t?'on':''});if(t==='let')renderLet();if(t==='mese')renderMese();if(t==='dati')renderDati();window.scrollTo(0,0)}
+function dl(name,type,bytes){
+ var blob=new Blob([bytes],{type:type});
+ try{var f=new File([blob],name,{type:type});if(navigator.canShare&&navigator.canShare({files:[f]})){navigator.share({files:[f]}).catch(function(){});return}}catch(e){}
+ var u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();
+ setTimeout(function(){URL.revokeObjectURL(u)},60000);toast('File pronto: controlla i Download');
+}
+document.addEventListener('click',function(e){
+ var t=e.target,d=t.dataset||{};
+ if(d.t)return tab(d.t);
+ if(d.m){cur=shift(cur,+d.m);return renderMese()}
+ if(d.del){if(confirm('Eliminare questa lettura?')){db.r=db.r.filter(function(r){return String(r.id)!==d.del});save();renderLet()}return}
+ if(t.id==='sv'){var dt=$('#d').value,v=num($('#v').value);
+  if(!dt)return toast('Scegli la data');if(!(v>=0))return toast('Inserisci la lettura del contatore');
+  var prev=null,next=null;sorted().forEach(function(r){if(r.d<=dt)prev=r;else if(!next)next=r});
+  if(prev&&v<prev.v)return toast('Lettura più bassa della precedente ('+nf(prev.v,3)+')');
+  if(next&&v>next.v)return toast('Lettura più alta di quella successiva ('+nf(next.v,3)+')');
+  db.r.push({id:Date.now(),d:dt,v:Math.round(v*1000)/1000,n:$('#n').value.trim(),p:unit()});save();cur=dt.slice(0,7);renderLet();toast('Lettura salvata ✓')}
+ if(t.id==='sp'){var a=num($('#pa').value),b=num($('#pb').value),c=num($('#pc').value),i=num($('#pi').value);
+  if(!(a>=0&&b>=0&&c>=0&&i>=0))return toast('Controlla i valori');db.p={a:a,b:b,c:c,i:i};save();renderDati();toast('Prezzo aggiornato ✓')}
+ if(t.id==='ex'){dl('backup_gas_'+today()+'.json','application/json',new Uint8Array(new TextEncoder().encode(JSON.stringify(db))))}
+ if(t.id==='im')$('#fi').click();
+ if(t.id==='rs'&&confirm('Cancellare TUTTE le letture? Non si può annullare.')){db.r=[];save();renderDati()}
+});
+document.addEventListener('change',function(e){
+ if(e.target.id!=='fi')return;var f=e.target.files[0];if(!f)return;var r=new FileReader();
+ r.onload=function(){try{var x=JSON.parse(r.result);if(!x.r||!x.p)throw 0;if(confirm('Sostituire i dati attuali con il backup ('+x.r.length+' letture)?')){db=x;save();renderDati();toast('Backup ripristinato')}}catch(er){toast('File non valido')}};r.readAsText(f);e.target.value='';
+});
+renderLet();
+</script></body></html>
